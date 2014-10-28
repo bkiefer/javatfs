@@ -1,0 +1,93 @@
+:begin :type.
+
+string := *top*.
+
+*list* := *top*.
+
+*cons* := *list* & [ FIRST *top*, REST *list* ].
+*null* := *list*.
+
+*diff-list* := [ LIST *list*, LAST *top* ].
+
+rule := [ ARGS *list* ].
+
+lex-rule := rule & [
+         f0 *top*,
+         f1 *top*,
+         f2 *top*,
+         f3 *top*,
+         f4 *top*
+         ].
+
+head := [ HEAD head ].
+
+#|
+lex-rule1 := lex-rule.
+
+lex-rule1 :+ head.
+
+lex-rule2 := lex-rule & 
+             [ f0 "1" & #feat,
+               ARGS < [ f0 #feat ] > ].
+
+|#
+                        
+two-corefs1 := lex-rule & [
+         f0 #arg & #head,
+         f1 #arg,
+         f2 #head ].
+
+two-corefs2 := lex-rule & 
+           [ f0  [ HEAD [] & #head & #arg ],
+             ARGS < #head & [], #arg & [] > ].
+
+two-corefs3 := lex-rule & 
+            [ f0  [ HEAD [] & #head & #arg ],
+               ARGS < #head & [], #arg & [] > ].
+
+two-corefs3 :+ [ f1 #head, f2 #head, f3 #arg, f4 #arg ].
+
+:end :type.
+
+:begin :instance :status lex-rule.
+lex-rule0 := lex-rule.
+#|
+; Vowels
+; Consonants
+%(letter-set  (!c bcdfghjklmnpqrstvwxzﬂ)) 
+
+;lex-rule1 := lex-rule1 & 
+;             [ feat #feat,
+;               ARGS < [ feat #feat ] > ].
+
+;lex-rule2 := lex-rule2.
+                        
+lex-rule3 := lex-rule & 
+             [ f0 "1",
+               ARGS < [ f0 "3" ] > ].
+
+lex-rule4 := lex-rule & 
+             [ f0 "3",
+               ARGS < [ f0 "2" ] > ].
+
+infl-rule1 :=
+%suffix (nis niss) 
+             lex-rule &
+             [ f0 "1" & #f0,
+               ARGS < [ f0 #f0 ] > ].
+
+infl-rule2 :=
+%suffix (!c !ce)
+             lex-rule &
+             [ f0 "2" & #f0,
+               ARGS < [ f0 #f0 ] > ].
+
+;infl-rule3 :=
+;%suffix (!i !ie) (!c !ce) (ni niss)
+;             lex-rule.
+|#
+:end :instance.
+
+:begin :instance :status lex-entry.
+ereignis_inst := [ stem "ereignis" ].
+:end :instance.

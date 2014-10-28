@@ -1,0 +1,91 @@
+:begin :type.
+
+string := *top*.
+
+*list* := *top*.
+
+*cons* := *list* & [ FIRST *top*, REST *list* ].
+*null* := *list*.
+
+*diff-list* := [ LIST *list*, LAST *top* ].
+
+rule := [ ARGS *list* ].
+
+f := *top*.
+
+g := f & [ G *top* ].
+
+h := f & [ H *top* ].
+
+;; wellformedness constraints
+i := g & h & [ I *top* ].
+
+;; for type clash
+j := *top*.
+
+l := *top* & [ A *top*, B *top*, C *top*, D *top*, E *top* ].
+
+:end :type.
+
+;; to avoid cheap complaints about missing lex-rule status.
+:begin :instance :status lex-rule.
+k := rule & [ ARGS < *top* > ].
+
+qc_paths_set := *top* &
+[ ARGS "1",
+  ARGS.FIRST "2",
+  ARGS.REST.FIRST "3",
+  ARGS.ARGS "4",
+  ARGS.FIRST.FIRST "5"
+].
+
+:end :instance.
+
+#|
+
+[ *cons* FIRST [ *top* ] ]
+[ *cons* FIRST [ *top* ] REST [ *top* ] ]
+[ *cons* FIRST [ *top* ] REST [ *cons* FIRST [ f ] ] ]
+[ *cons* FIRST [ *cons* ] ]
+[ *cons* FIRST # 1 [ f ] 
+         REST [ *cons* FIRST # 1 ] ]
+[ *cons* FIRST # 1 [ f ] 
+         ARGS [ *top* ]
+         REST [ *cons* FIRST # 1 ] ]
+[ *cons* FIRST # 1 [ j ] 
+         ARGS [ *top* FIRST [ j ] ]
+         REST [ *cons* FIRST # 1 ] ]
+[ *cons* FIRST # 1 [ j ]
+         REST # 2 [ *cons* FIRST # 1 ]
+         ARGS # 2 ]
+[ *cons* FIRST [ *cons* FIRST # 1 [ *top* ARGS [ *top* ] ]
+         REST # 1 ] ]
+[ *cons* FIRST [ *cons* FIRST # 1 [ *top* FIRST [ *top* ] 
+                                          ARGS # 2 [ *top* ] ]
+                        REST # 1 ]
+         ARGS # 2 ]
+;; wellformedness constraints (check comparcs empty)
+[ *cons* FIRST #1 [ *top* ] REST [ *list* FIRST #1 ] ]
+[ *cons* FIRST [ g  G [ *top* ] ] REST [ *list* FIRST [ h ] ] ]
+-->
+[ *cons* FIRST #1 [ i G [ *top* ] H [ *top* ] I [ *top* ] ]
+         REST [ *list* FIRST #1 ] ]",
+
+[ l B [ *top* ] D [ l A [ *top* ] ] ]
+
+[ l B # 1 [*top*] C # 1  D [ l A # 1] ]
+
+[ l D [ l A # 1 [*top*] ] E # 1 ]
+
+[ l A [ l D # 1 [*top*] ] B #1 D [ l A [*top*] ] ]
+
+[ l A [ l D # 1 [*top*] ] B #1 D [ l A [*top*] ] ]
+
+[ l A [ l D # 1 [*top*] ] B #1 D [ l A # 1 ] ]
+
+[ l B # 1 [ *top* ] C [ l D # 1 ] D [ l A [ *top* ] ] ]
+
+;; input: 
+
+[ l B #1 [ *top* ] D [ l A # 1 ] ]
+|# 

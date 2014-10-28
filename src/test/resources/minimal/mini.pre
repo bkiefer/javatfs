@@ -1,0 +1,124 @@
+;;; `mini.pre' -- generated from `mini.tdl' (unknown) on Sat Jun 12 19:14:05 2010
+
+:begin :type.
+
+;; type definition from mini.tdl:3
+string := *top* &
+  [ ].
+
+;; type definition from mini.tdl:7
+*cons* := *list* &
+  [ FIRST *top*,
+    REST  *list* ].
+
+;; type definition from mini.tdl:5
+*list* := *top* &
+  [ ].
+
+;; type definition from mini.tdl:8
+*null* := *list* &
+  [ ].
+
+;; type definition from mini.tdl:10
+*diff-list* :=
+  [ LIST *list*,
+    LAST *top* ].
+
+;; type definition from mini.tdl:12
+rule :=
+  [ ARGS *list* ].
+
+;; type definition from mini.tdl:14
+lexrule := rule &
+  [ FEAT *top* ].
+
+;; type definition from mini.tdl:20
+head := *top* &
+  [ ].
+
+;; type definition from mini.tdl:22
+baz :=
+  [ HEAD head ].
+
+;; type definition from mini.tdl:24
+test := baz & *list* &
+  [ BAR *top* ].
+
+;; type definition from mini.tdl:34
+lex-rule1 := lexrule &
+  [ ].
+
+;; type definition from mini.tdl:36
+lex-rule2 := lexrule &
+  [ FEAT "1" &
+         #feat,
+    ARGS < [ FEAT #feat ] > ].
+
+;; type definition from mini.tdl:40
+lex-rule3 := lexrule &
+  [ ].
+
+;; type definition from mini.tdl:42
+lex-rule4 := lexrule &
+  [ ].
+
+;; type definition from mini.tdl:44
+infl-rule1 := lexrule &
+  [ ].
+
+;; type definition from mini.tdl:46
+infl-rule2 := lexrule &
+  [ ].
+
+;; type definition from mini.tdl:48
+infl-rule3 := lexrule &
+  [ FEAT #feat,
+    ARGS < [ FEAT #feat ] > ].
+
+;; type definition from mini.tdl:52
+test-coref := lexrule &
+  [ BAR1 #foo,
+    BAR2 #foo,
+    BAR3 #arg,
+    BAR4 #arg ] &
+  [ BAZ  [ HEAD [ ] &
+                #head#0000_arg#0001 ],
+    ARGS < #head#0000_arg#0001 &
+           [ ], #head#0000_arg#0001 &
+           [ ] > ].
+
+:end :type.
+
+:begin :instance.
+
+;; instance definition from mini.tdl:71
+lex-rule3 := lex-rule3 &
+  [ FEAT "1",
+    ARGS < [ FEAT "3" ] > ], status: lex-rule.
+
+;; instance definition from mini.tdl:75
+lex-rule4 := lex-rule4 &
+  [ FEAT "3",
+    ARGS < [ FEAT "2" ] > ], status: lex-rule.
+
+;; instance definition from mini.tdl:80
+infl-rule1 := infl-rule1 &
+  [ FEAT "1" &
+         #feat,
+    ARGS < [ FEAT #feat ] > ], status: lex-rule.
+
+;; instance definition from mini.tdl:86
+infl-rule2 := infl-rule2 &
+  [ FEAT "2" &
+         #feat,
+    ARGS < [ FEAT #feat ] > ], status: lex-rule.
+
+;; instance definition from mini.tdl:97
+ereignis_inst :=
+  [ STEM "ereignis" ], status: lex-entry.
+
+;; instance definition from mini.tdl:99
+empty_string :=
+  [ STEM0 "" ], status: lex-entry.
+
+:end :instance.

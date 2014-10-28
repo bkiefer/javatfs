@@ -1,0 +1,17 @@
+encoding := iso-8859-1.
+
+include "flop".
+
+;;rule-status-values := rule.
+
+;; path to the list of arguments in a rule
+rule-args-path := ARGS.
+
+;; path to marker for key argument of a rule
+keyarg-marker-path := KEY-ARG.
+
+;; path to marker for head dtr of a rule
+head-dtr-path := HEAD-DTR.
+
+;; path to orthography
+orth-path := "STEM".
