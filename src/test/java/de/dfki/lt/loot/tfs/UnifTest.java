@@ -24,7 +24,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import de.dfki.lt.loot.tfs.io.InvalidSyntaxException;
-import de.dfki.lt.loot.tfs.io.TFSDisplay;
+//import de.dfki.lt.loot.tfs.io.TFSDisplay;
 
 public class UnifTest {
 
@@ -407,7 +407,7 @@ public class UnifTest {
     }
     if (subsResults[j + base.length * i] != result) {
       logger.info("Testing " + i + " vs. "+ j + " " + s);
-      if (DISPLAY) TFSDisplay.displayAndWait(afs[i], bfs[j]);
+      //if (DISPLAY) TFSDisplay.displayAndWait(afs[i], bfs[j]);
     }
     assertEquals("" + i + ":" + j, subsResults[j + base.length * i], result);
   }
@@ -428,7 +428,7 @@ public class UnifTest {
     if (eqfwresult != eqbwresult) {
       logger.info("Equals not symmetric:" + i + " vs. " + j
           + " fw: " + eqfwresult + " bw: " + eqbwresult);
-      if (DISPLAY) TFSDisplay.displayAndWait(afs[i], bfs[j]);
+      //if (DISPLAY) TFSDisplay.displayAndWait(afs[i], bfs[j]);
     }
 
     int result = afs[i].subsumesBi(bfs[j]);
@@ -444,7 +444,7 @@ public class UnifTest {
     if (eqfwresult != subsresult) {
       logger.info("Equals != SubsBi " + i + " vs. "+ j + " " +
           " eq: " + eqfwresult + " subsBi: " + s);
-      if (DISPLAY) TFSDisplay.displayAndWait(afs[i], bfs[j]);
+      //if (DISPLAY) TFSDisplay.displayAndWait(afs[i], bfs[j]);
     }
     assertEquals(eqfwresult, eqbwresult);
     assertEquals(subsresult, eqfwresult);
@@ -495,7 +495,7 @@ public class UnifTest {
     if (result != unifResults[j + base.length * i]) {
       logger.info((unifResults[j + base.length * i] ? "" : "not ") +
           "unifiable: " + i + " + " + j + " : " + result);
-      if (DISPLAY) TFSDisplay.displayAndWait(afs[i], bfs[j]);
+      //if (DISPLAY) TFSDisplay.displayAndWait(afs[i], bfs[j]);
     }
     assertEquals("" + i + ":" + j, unifResults[j + base.length * i], result);
   }
@@ -514,7 +514,7 @@ public class UnifTest {
     if ((result != null) != unifResults[j + base.length * i]) {
       logger.info((unifResults[j + base.length * i] ? "" : "not ") +
           "unifiable: " + i + " + " + j + " : " + result);
-      if (DISPLAY) TFSDisplay.displayAndWait(afs[i], bfs[j]);
+      //if (DISPLAY) TFSDisplay.displayAndWait(afs[i], bfs[j]);
     }
     else {
       if (result != null) {
@@ -523,7 +523,7 @@ public class UnifTest {
             (result.subsumesBi(bfs[j]) & DagNode.ARG_MORE_GENERAL) != 0);
         if (!ok) {
           logger.info("Unification result questionable " + i + " + " + j);
-          if (DISPLAY) TFSDisplay.displayAndWait(afs[i], bfs[j], result);
+          //if (DISPLAY) TFSDisplay.displayAndWait(afs[i], bfs[j], result);
         }
         assertTrue(ok);
       }
@@ -605,10 +605,11 @@ public class UnifTest {
     boolean ok = (result.subsumesBi(givenResult) ==
       (DagNode.ARG_MORE_GENERAL | DagNode.THIS_MORE_GENERAL));
     if (!ok) {
-      if (DISPLAY) TFSDisplay.displayAndWait(true,
+      /*if (DISPLAY) TFSDisplay.displayAndWait(true,
           "UnifRes_"+ nr, result,
           "GivenRes_"+ nr, givenResult,
           null, null);
+      */
       logger.error(description[nr] + " questionable ");
       logger.error("arg1: " + arg1);
       logger.error("arg2: " + arg2);
@@ -714,7 +715,8 @@ public class UnifTest {
     }
   }
 
-  @Test(expected=ArrayIndexOutOfBoundsException.class)
+  /* ENABLE ASSERTIONS FOR UNIT TESTS TO MAKE THIS WORK */
+  @Test(expected=AssertionError.class)
   public void testQCAssert() throws InvalidSyntaxException {
     TFS fs1 = TFS.fsFromString("[ *top* ARGS [ *cons*" +
         " FIRST [ j ARGS [ *cons* ] ]" +
