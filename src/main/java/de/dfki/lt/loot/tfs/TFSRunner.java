@@ -222,7 +222,7 @@ public class TFSRunner {
       System.exit(1);
     }
 
-    List<String> files = options.nonOptionArguments();
+    List<String> files = (List<String>) options.nonOptionArguments();
     if (files.size() < 2)
       return;
     int testtype = 1;
