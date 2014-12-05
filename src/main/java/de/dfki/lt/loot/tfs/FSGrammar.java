@@ -768,6 +768,11 @@ public class FSGrammar {
     return this._statusIdMap.getId(name);
   }
 
+  /** Return the status id for the given string */
+  public String getStatusName(int statusId) {
+    return this._statusIdMap.fromId(statusId);
+  }
+
   /** Return the status id for the given type */
   public int getStatusForType(int type) {
     return this._type2Status.get(type);

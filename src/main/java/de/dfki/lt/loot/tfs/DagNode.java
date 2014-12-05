@@ -73,6 +73,9 @@ public class DagNode {
   // only fore reading statistics
   public static int totalNoNodes = 0, totalNoArcs = 0;
 
+  // throw an error if reading a jxchg file with an unknown feature
+  public static boolean UNKNOWN_FEATURE_ERROR = true;
+
   // these two would have to be thread-local for this class to be used in
   // parallel threads
   private static long currentGenerationMax = 1;
@@ -504,7 +507,7 @@ public class DagNode {
 
   /** recursive helper function for copyResult() */
   @SuppressWarnings("null")
-  private DagNode copyResultRec(DagNode restrictor) {
+  private DagNode copyResultRec(DagNode restrictor, TShortHashSet toDelete) {
     DagNode in = this.dereference();
     DagNode newCopy = in.getCopy();
     if (newCopy != null) {
@@ -575,14 +578,15 @@ public class DagNode {
         subRestr = restArc.value;
       }
       boolean keep =
-         ((restr == RESTRICT.RSTR_NO
-           && (subRestr == null
-               || subRestr.getType() != RESTRICT.RSTR_DEL.ordinal()))
-          || (restr == RESTRICT.RSTR_KEEP && subRestr != null
-              && restArc.feature == feat));
+          ((toDelete == null) || ! toDelete.contains(feat))
+          && ((restr == RESTRICT.RSTR_NO
+               && (subRestr == null
+                   || subRestr.getType() != RESTRICT.RSTR_DEL.ordinal()))
+              || (restr == RESTRICT.RSTR_KEEP && subRestr != null
+                  && restArc.feature == feat));
       if (keep) {
         newCopy._edges.add(
-            new DagEdge(feat, arc.value.copyResultRec(subRestr)));
+            new DagEdge(feat, arc.value.copyResultRec(subRestr, toDelete)));
       }
     }
     newCopy.edgesAreEmpty();
@@ -606,10 +610,28 @@ public class DagNode {
    */
   public DagNode copyResult(DagNode restrictor) {
     // Return a copied result using the scratch buffer of this node
-    DagNode result = copyResultRec(restrictor);
+    DagNode result = copyResultRec(restrictor, null);
     invalidate();
     return result;
   }
+
+  /** Copy the result after a series of unifications.
+  *
+  *  This does *NOT* implement partial copying, so the resulting dag will be
+  *  completely independent of the unified source structures, which makes it
+  *  safe to use them in a parallel execution environment, as long as it's not
+  *  during unification
+  *
+  * @param restrictor a dag node representing a restrictor
+  * @param toDelete if a feature is in this set, it is to be deleted
+  * @return a copied result independent from the input dag
+  */
+ public DagNode copyResult(DagNode restrictor, TShortHashSet toDelete) {
+   // Return a copied result using the scratch buffer of this node
+   DagNode result = copyResultRec(restrictor, toDelete);
+   invalidate();
+   return result;
+ }
 
   private boolean makeWellformed(int unifiedType) {
     long generationSave = currentGeneration;
@@ -1876,6 +1898,9 @@ public class DagNode {
       short featval = FSGrammar.ILLEGAL_FEATURE;
       if (in.ttype == StreamTokenizer.TT_WORD) {
         featval = gram.getFeatureId(in.sval);
+        if (featval == FSGrammar.ILLEGAL_FEATURE && UNKNOWN_FEATURE_ERROR) {
+          throw new InvalidSyntaxException("Unknown Feature Name", in);
+        }
       } else {
         featval = (short)in.nval;
       }
