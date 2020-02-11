@@ -26,7 +26,7 @@ public class DualUnifErrorProducer extends AbstractTFSErrorProducer {
       if (! res.unifyOnly(currRargs[i + 1], i))
         return null;
     }
-    return res.copyResult(false);
+    return res.copyResult();
   }
 
   public DualUnifErrorProducer(TFS[] ruleAndArgs, TestType testType) {

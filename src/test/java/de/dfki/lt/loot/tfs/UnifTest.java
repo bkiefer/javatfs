@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import gnu.trove.map.TLongIntMap;
 import gnu.trove.map.hash.TLongIntHashMap;
+import gnu.trove.set.hash.TShortHashSet;
 
 import java.io.File;
 import java.io.FileReader;
@@ -18,13 +19,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.junit.Before;
 import org.junit.Test;
 
 import de.dfki.lt.loot.tfs.io.InvalidSyntaxException;
-//import de.dfki.lt.loot.tfs.io.TFSDisplay;
 
 public class UnifTest {
 
@@ -286,7 +286,7 @@ public class UnifTest {
 
   protected static FSGrammar gram = null;
 
-  private File getTestResourceDir() {
+  public static File getTestResourceDir() {
     String relativePath = "src/test/resources/";
     Properties sysProps = System.getProperties();
     String basedir = (String) sysProps.get("basedir");
@@ -297,7 +297,6 @@ public class UnifTest {
   }
 
   @Before public void setUp() {
-    BasicConfigurator.configure();
     File resourceDir = getTestResourceDir();
 
     if (gram == null)
@@ -326,7 +325,7 @@ public class UnifTest {
   }
 
   public void testCreationOne(int i) {
-    logger = Logger.getLogger("testCreation");
+    logger = LoggerFactory.getLogger("testCreation");
     assertTrue("AFS not created:" + i , afs[i] != null);
     assertTrue("BFS not created:" + i , bfs[i] != null);
     //if (i == 9 && DISPLAY) TFSDisplay.displayAndWait(afs[i], bfs[i]);
@@ -342,7 +341,7 @@ public class UnifTest {
   }
 
   public void testCreationPartOne(int i) {
-    logger = Logger.getLogger("testCreation");
+    logger = LoggerFactory.getLogger("testCreation");
     assertTrue("TFS not created: "+ i, tfs[i] != null);
   }
 
@@ -366,7 +365,7 @@ public class UnifTest {
   }
 
   public void testCorefCountOne(int i) {
-    logger = Logger.getLogger("testBiSubsumption");
+    logger = LoggerFactory.getLogger("testBiSubsumption");
     int result = afs[i].countCorefs();
     afs[i].invalidate();
     if (result != corefNo[i])
@@ -381,7 +380,7 @@ public class UnifTest {
   }
 
   public void testCorefCountRigidOne(int i) {
-    logger = Logger.getLogger("testBiSubsumption");
+    logger = LoggerFactory.getLogger("testBiSubsumption");
     int result = afs[i].countCorefsRigid();
     afs[i].invalidate();
     if (result != corefNoRigid[i])
@@ -396,7 +395,7 @@ public class UnifTest {
   }
 
   public void testBiSubsumptionOne (int i, int j) {
-    logger = Logger.getLogger("testBiSubsumption");
+    logger = LoggerFactory.getLogger("testBiSubsumption");
     int result = afs[i].subsumesBi(bfs[j]);
     String s = "WHAT?";
     switch (result) {
@@ -422,7 +421,7 @@ public class UnifTest {
   }
 
   public void testBiSubsumptionVsEqualsOne (int i, int j) {
-    logger = Logger.getLogger("testBiSubsumptionVsEquals");
+    logger = LoggerFactory.getLogger("testBiSubsumptionVsEquals");
     boolean eqfwresult = afs[i].equals(bfs[j]);
     boolean eqbwresult = bfs[j].equals(afs[i]);
     if (eqfwresult != eqbwresult) {
@@ -460,7 +459,7 @@ public class UnifTest {
   }
 
   public void testSubsumptionOne(int i, int j) {
-    logger = Logger.getLogger("testSubsumption");
+    logger = LoggerFactory.getLogger("testSubsumption");
     int result = afs[i].subsumesBi(bfs[j]);
     if ((result & DagNode.THIS_MORE_GENERAL) != 0)
       assertTrue("" + i + ":" + j, afs[i].subsumes(bfs[j]));
@@ -488,7 +487,7 @@ public class UnifTest {
   }
 
   public void testUnifiableOne(int i, int j) {
-    logger = Logger.getLogger("testUnifiable");
+    logger = LoggerFactory.getLogger("testUnifiable");
     boolean result = afs[i].unifiable(bfs[j]);
     // compensate incomplete cycle check
     if (afs[i].checkCycles() || bfs[j].checkCycles()) result = false;
@@ -509,7 +508,7 @@ public class UnifTest {
   }
 
   public void testUnificationOne(int i, int j) {
-    logger = Logger.getLogger("testUnification");
+    logger = LoggerFactory.getLogger("testUnification");
     TFS result = afs[i].unifyFS(bfs[j]);
     if ((result != null) != unifResults[j + base.length * i]) {
       logger.info((unifResults[j + base.length * i] ? "" : "not ") +
@@ -523,9 +522,9 @@ public class UnifTest {
             (result.subsumesBi(bfs[j]) & DagNode.ARG_MORE_GENERAL) != 0);
         if (!ok) {
           logger.info("Unification result questionable " + i + " + " + j);
-          //if (DISPLAY) TFSDisplay.displayAndWait(afs[i], bfs[j], result);
+          // if (DISPLAY) TFSDisplay.displayAndWait(afs[i], bfs[j], result);
         }
-        assertTrue(ok);
+        assertTrue(""+i+" "+j, ok);
       }
     }
   }
@@ -593,14 +592,14 @@ public class UnifTest {
       for (short i : permutation.subList(1, permutation.size())) {
         res.unifyOnly(dags[i]);
       }
-      res = res.copyResult(false);
+      res = res.copyResult();
       assertEquals("Permutation: " + permutation, reference, res);
     }
   }
 
   private boolean testUnificationPartialHelper(int nr,
       TFS arg1, TFS arg2, TFS givenResult) {
-    logger = Logger.getLogger("testUnifier");
+    logger = LoggerFactory.getLogger("testUnifier");
     TFS result = arg1.unifyFS(arg2);
     boolean ok = (result.subsumesBi(givenResult) ==
       (DagNode.ARG_MORE_GENERAL | DagNode.THIS_MORE_GENERAL));
@@ -647,11 +646,11 @@ public class UnifTest {
 
   @Test public void copyResultTest() throws InvalidSyntaxException {
     TFS fs1 = TFS.fsFromString("[ *top* ARGS [ *cons* FIRST [ j ] REST [ *null* ] ] ]");
-    TFS fs2 = fs1.copyResult(false);
+    TFS fs2 = fs1.copyResult();
     assertFalse(fs1 == fs2);
     assertEquals(fs1, fs2);
-    gram.addFeatureToDelete(FSGrammar.ARGS_FEATURE_NAME);
-    TFS fs3 = fs1.copyResult(true);
+    String[] toDelete = { FSGrammar.ARGS_FEATURE_NAME };
+    TFS fs3 = fs1.copyResult(DelDtrsMassager.newMassager(gram, toDelete));
     assertEquals(TFS.fsFromString("[ *top* ]"), fs3);
   }
 
@@ -848,6 +847,7 @@ public class UnifTest {
     };
     for (TFS rfs : restrs) {
       TFS restr = rfs.getRestrictorDag();
+      FSMassager m = FullMassager.newMassager(gram, null, restr);
       int i = 0;
       for (String fs : restr_dags) {
         TFS fsIn = TFS.fsFromString(fs);

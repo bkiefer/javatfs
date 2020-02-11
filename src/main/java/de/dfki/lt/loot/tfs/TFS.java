@@ -1,5 +1,7 @@
 package de.dfki.lt.loot.tfs;
 
+import gnu.trove.set.hash.TShortHashSet;
+
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.Writer;
@@ -102,6 +104,11 @@ public class TFS {
   /** Return a clone of the current FS, i.e., an independent deep copy */
   public TFS cloneFS() { return new TFS(val.cloneFS()); }
 
+  /** Return a clone of the current FS, i.e., an independent deep copy */
+  public TFS cloneFS(TShortHashSet toDelete, int[] typesToGeneralize) {
+    return new TFS(val.copyFs(toDelete, typesToGeneralize));
+  }
+
   public boolean unifiable(TFS arg){ return val.isUnifiable(arg.val); }
 
   public TFS unifyFS(TFS arg) {
@@ -118,8 +125,9 @@ public class TFS {
     return dag().unifyOnly(arg.dag(), argNo);
   }
 
-  public TFS copyResult(boolean deleteDaughters) {
-    return new TFS(val.copyResult(deleteDaughters));
+  public TFS copyResult() {
+    DagNode resultDag = val.copyResult();
+    return resultDag == null ? null : new TFS(resultDag);
   }
 
 
@@ -132,6 +140,16 @@ public class TFS {
    */
   public TFS copyResult(TFS restrictor) {
     return new TFS(val.copyResult(restrictor.val));
+  }
+
+  /** Copy a temporary dag, restricting while copying.
+   *
+   * @param restrictor
+   * @return
+   */
+  public TFS copyResult(DagRestrictor restrictor) {
+    DagNode resultDag = val.copyResult(restrictor);
+    return resultDag == null ? null : new TFS(resultDag);
   }
 
   @Override

@@ -19,6 +19,7 @@ import de.dfki.lt.loot.tfs.io.DagPrinter;
 import de.dfki.lt.loot.tfs.io.InvalidSyntaxException;
 import de.dfki.lt.loot.tfs.io.JxchgTokenizer;
 import de.dfki.lt.loot.tfs.io.PetUndumper;
+import de.dfki.lt.loot.tfs.util.IntTrie;
 import de.dfki.lt.loot.tfsdebugging.ErrorProducer;
 
 
@@ -65,7 +66,7 @@ public class DagNode {
 
   // TODO: very special constant, for grammar approximation
   protected static short SLASH_FEATURE;
-  protected static int MAX_SLASH_DEPTH = 4; // TODO: maybe even only 3
+  protected static int MAX_SLASH_DEPTH = 999; // TODO: maybe even only 3
 
   // A marker dag for cycle checks
   private static final DagNode INSIDE = new DagNode(0);
@@ -84,7 +85,7 @@ public class DagNode {
   @SuppressWarnings("serial")
   private class CycleError extends Error {}
 
-  /* ******************** PUBLIC CONSTANTS ******************** */
+  /* ******************** PUBLIC CONSTANTS AND VARIABLES ******************** */
 
   /** Use internal codes or external names for printing */
   public static boolean PRINT_READABLE = true;
@@ -112,6 +113,9 @@ public class DagNode {
    */
   public enum RESTRICT { RSTR_KEEP, RSTR_DEL, RSTR_NO }
 
+  // if this is non-null, count statistics about type failures are collected
+  static public IntTrie<int[]> paths;
+
   /* ******************** PRIVATE FIELDS AND CLASSES ******************** */
 
   // The type of this node
@@ -126,6 +130,7 @@ public class DagNode {
   private DagNode _forward;
   private DagNode _copy;
   private ArrayList<DagEdge> _compArcs;
+
 
   /** so that we don't have to return null when the edges list is empty */
   private static Iterator<DagEdge> emptyEdges =
@@ -382,15 +387,18 @@ public class DagNode {
     return cloneFSRec();
   }
 
+
   private DagNode copyFsRec(TShortHashSet featuresToDelete,
       int[] typesToGeneralize) {
     DagNode newCopy = getCopy();
     if (newCopy == null) {
-      int fsType = getNewType();
-      for (int type : typesToGeneralize) {
-        if (type != fsType && subsumesType(type, fsType)) {
-          fsType = type;
-          break;
+      if (typesToGeneralize != null) {
+        int fsType = getNewType();
+        for (int type : typesToGeneralize) {
+          if (type != fsType && subsumesType(type, fsType)) {
+            fsType = type;
+            break;
+          }
         }
       }
       newCopy = new DagNode(getNewType());
@@ -422,7 +430,7 @@ public class DagNode {
    *  safe to use them in a parallel execution environment, as long as it's not
    *  during unification
    */
-  private DagNode copyResultRec(boolean deleteDaughters) {
+  private DagNode copyResultRec() {
     DagNode in = this.dereference();
     DagNode newCopy = in.getCopy();
     if (newCopy == INSIDE) {
@@ -469,9 +477,7 @@ public class DagNode {
       }
 
       short feat = arc.feature;
-      if (!deleteDaughters || fsgrammar.keepFeature(feat)) {
-        newCopy._edges.add(new DagEdge(feat, arc.value.copyResultRec(false)));
-      }
+      newCopy._edges.add(new DagEdge(feat, arc.value.copyResultRec()));
     }
     newCopy.edgesAreEmpty();
     in.setCopy(newCopy);
@@ -489,21 +495,20 @@ public class DagNode {
    *  safe to use them in a parallel execution environment, as long as it's not
    *  during unification
    *
-   *  @param deleteDaughters delete some top level features only concerned with
-   *                         building the constituent tree (grammar specified)
    *  @return a copied result independent from the input dag
    */
-  public DagNode copyResult(boolean deleteDaughters) {
+  public DagNode copyResult() {
     // Return a copied result using the scratch buffer of this node
     DagNode result = null;
     try {
-      result = copyResultRec(deleteDaughters);
+      result = copyResultRec();
     } catch (CycleError err) {
       result = null;
     }
     invalidate();
     return result;
   }
+
 
   /** recursive helper function for copyResult() */
   @SuppressWarnings("null")
@@ -513,12 +518,10 @@ public class DagNode {
     if (newCopy != null) {
       // this is less efficient, but guarantees equal results to copy first
       // - restrict later
-      /*
-      if (restrictor != null) {
-        // destructively change new dag
-        newCopy.restrict(restrictor);
-      }
-      */
+      //if (restrictor != null) {
+      //  // destructively change new dag
+      //  newCopy.restrict(restrictor);
+      //}
       return newCopy;
     }
 
@@ -597,6 +600,148 @@ public class DagNode {
     return newCopy;
   }
 
+  /*
+  public class Massager {
+    private static Massager
+
+    int restr;
+    TShortHashSet toDelete;
+    public void startNode() {}
+    Massager nextFeat(short feature) { return null; }
+    boolean keep() {
+      boolean keep =
+          ((toDelete == null) || ! toDelete.contains(feature))
+          && ((restr == RESTRICT.RSTR_NO
+              && (subRestr == null || subRestr.getType() != RESTRICT.RSTR_DEL.ordinal()))
+                 || (restr == RESTRICT.RSTR_KEEP && subRestr != null
+                 && restArc.feature == feat));
+      return keep;
+    }
+    Massager descend() { return null; }
+  }
+  */
+
+  /** recursive helper function for copyResult(), massager version */
+  DagNode copyResultRec(DagRestrictor m) {
+    DagNode in = this.dereference();
+    DagNode newCopy = in.getCopy();
+    if (newCopy == INSIDE) {
+      throw new CycleError();
+    }
+    if (newCopy != null) {
+      // this is less efficient, but guarantees equal results to copy first
+      // - restrict later
+      /*
+      if (restrictor != null) {
+        // destructively change new dag
+        newCopy.restrict(restrictor);
+      }
+      */
+      return newCopy;
+    }
+
+    int newType = in.getNewType();
+    if (m != null) newType = m.massageType(newType);
+
+    newCopy = new DagNode(newType);
+
+    // first check if this is an empty DLIST that should be massaged
+    if (fsgrammar.subsumesType(fsgrammar.dListTypeId, getType())) {
+      /*
+      DagNode list = getValue(fsgrammar.listFeatureId);
+      DagNode last = getValue(fsgrammar.lastFeatureId);
+      if (list != null && (list == last && list._edges != null)
+          || (list == null && last != null)) {
+        ++emptiedDlists;
+        DagNode d = new DagNode(FSGrammar.TOP_TYPE);
+        newCopy._edges = new ArrayList<DagEdge>(2);
+        newCopy._edges.add(new DagEdge(fsgrammar.listFeatureId, d));
+        newCopy._edges.add(new DagEdge(fsgrammar.lastFeatureId, d));
+      }
+      */
+    } else {
+      in.setCopy(INSIDE);
+
+      int newsize = 0;
+      int cursorArcs = -1, cursorCompArcs = -1;
+      if (in._edges != null) {
+        cursorArcs = 0;
+        newsize = in._edges.size();
+      }
+      if (_generation == currentGeneration && in._compArcs != null) {
+        cursorCompArcs = 0;
+        newsize += in._compArcs.size();
+      }
+
+      if (cursorArcs != -1 || cursorCompArcs != -1) {
+        newCopy._edges = new ArrayList<DagEdge>(newsize);
+      }
+      DagRestrictor.Iterator it = m.iterator();
+      while (cursorArcs != -1 || cursorCompArcs != -1) {
+        DagEdge arc = null ;
+        if (cursorArcs != -1 &&
+            (cursorCompArcs == -1
+            || (in._compArcs.get(cursorCompArcs).feature
+                > in._edges.get(cursorArcs).feature))) {
+          int curr = cursorArcs;
+          if (++cursorArcs == in._edges.size()) {
+            cursorArcs = -1;
+          }
+          arc = in._edges.get(curr);
+        } else {
+          int curr = cursorCompArcs;
+          if (++cursorCompArcs == in._compArcs.size()) {
+            cursorCompArcs = -1;
+          }
+          arc = in._compArcs.get(curr);
+        }
+
+        short feat = arc.feature;
+        DagRestrictor sub = it.next(feat);
+
+        if (m == null || m.keep(feat, sub)) {
+          DagNode child = arc.value.copyResultRec(sub);
+          if (true || ! (child._edges == null
+                 && newType == fsgrammar.getAppropriateType(feat)
+                 && child.getType() == fsgrammar.getMaxAppropriateType(feat))){
+            newCopy._edges.add(new DagEdge(feat, child));
+          }
+        }
+      }
+      newCopy.edgesAreEmpty();
+    }
+
+    in.setCopy(newCopy);
+    in._compArcs = null;
+    // if resetting the copy slot is really necessary, it must be done AFTER
+    // copying has finished in a new recursive walkthrough
+    //in.setCopy(null);
+    return newCopy;
+  }
+
+  /** Copy the result after a series of unifications.
+  *
+  *  This does *NOT* implement partial copying, so the resulting dag will be
+  *  completely independent of the unified source structures, which makes it
+  *  safe to use them in a parallel execution environment, as long as it's not
+  *  during unification
+  *
+  * @param deleteDaughters delete some top level features only concerned with
+  *                        building the constituent tree (grammar specified)
+  * @return a copied result independent from the input dag
+  */
+  public DagNode copyResult(DagRestrictor restrictor) {
+    // Return a copied result using the scratch buffer of this node
+    DagNode result;
+    try {
+      result = copyResultRec(restrictor);
+    } catch (CycleError err) {
+      result = null;
+    }
+    invalidate();
+    return result;
+  }
+
   /** Copy the result after a series of unifications.
    *
    *  This does *NOT* implement partial copying, so the resulting dag will be
@@ -625,13 +770,14 @@ public class DagNode {
   * @param restrictor a dag node representing a restrictor
   * @param toDelete if a feature is in this set, it is to be deleted
   * @return a copied result independent from the input dag
-  */
+  *
  public DagNode copyResult(DagNode restrictor, TShortHashSet toDelete) {
    // Return a copied result using the scratch buffer of this node
    DagNode result = copyResultRec(restrictor, toDelete);
    invalidate();
    return result;
  }
+ */
 
   private boolean makeWellformed(int unifiedType) {
     long generationSave = currentGeneration;
@@ -642,13 +788,13 @@ public class DagNode {
     typeDag = typeDag.cloneFSRec();
     currentGeneration = generationSave;
     if (typeDag._edges != null) {
-      return unifyFS1(typeDag);
+      return unifyFS1(typeDag, null);
     }
     return true;
   }
 
   @SuppressWarnings("null")
-  private boolean unifyFS1(DagNode arg) {
+  private boolean unifyFS1(DagNode arg, IntTrie<int[]> _curr) {
     DagNode in1 = this.dereference();
     DagNode in2 = arg.dereference();
     if (in1.getCopy() == INSIDE) {
@@ -664,6 +810,14 @@ public class DagNode {
 
     int unifType = fsgrammar.unifyTypes(type1, type2);
     if (unifType == FSGrammar.BOTTOM_TYPE) {
+      if (_curr != null) {
+        int[] f = _curr.getValue();
+        if (f == null)
+          f = new int[1];
+        f[0]++;
+        _curr.setValue(f);
+      }
+
       if (recordFailures)
         forwardFailures.put(this, FailType.TYPE);
       return false;
@@ -723,7 +877,8 @@ public class DagNode {
           feat2 = (arc2It.hasNext() ? (arc2 = arc2It.next()).feature : NO_FEAT);
         }
         if (feat1 == feat2 && feat1 != NO_FEAT) {
-          if (! arc1.value.unifyFS1(arc2.value))
+          if (! arc1.value.unifyFS1(arc2.value,
+              _curr == null ? _curr : _curr.add(feat1)))
             return false;
           feat1 = (arc1It.hasNext() ? (arc1 = arc1It.next()).feature : NO_FEAT);
           feat2 = (arc2It.hasNext() ? (arc2 = arc2It.next()).feature : NO_FEAT);
@@ -740,9 +895,9 @@ public class DagNode {
    */
   public DagNode unifyFS(DagNode arg) {
     DagNode result = null;
-    if (unifyFS1(arg)) {
+    if (unifyFS1(arg, paths)) {
       try {
-        result = copyResultRec(false);
+        result = copyResultRec();
       } catch (CycleError err) {
         result = null;
       }
@@ -757,9 +912,9 @@ public class DagNode {
   public DagNode unifyFS(DagNode arg, DagNode sub) {
     if (sub == null) return null;
     DagNode result = null;
-    if (sub.unifyFS1(arg)) {
+    if (sub.unifyFS1(arg, paths)) {
       try {
-        result = copyResultRec(false);
+        result = copyResultRec();
       } catch (CycleError err) {
         result = null;
       }
@@ -787,7 +942,7 @@ public class DagNode {
    */
   public boolean unifyOnly(DagNode arg, int argNo) {
     DagNode subnode = this.getNthArg(argNo);
-    return (subnode != null && subnode.unifyFS1(arg));
+    return (subnode != null && subnode.unifyFS1(arg, paths));
   }
 
   /** Unify \p arg with \c this and return the result, if unification succeeds,
@@ -796,7 +951,7 @@ public class DagNode {
    *  before the final copy is made.
    */
   public DagNode unifyOnly(DagNode arg) {
-    return (unifyFS1(arg) ? this : null);
+    return (unifyFS1(arg, paths) ? this : null);
   }
 
   /** Test the unifiability of \c this and \p arg.
@@ -806,7 +961,7 @@ public class DagNode {
    *  unification.
    */
   public boolean isUnifiable(DagNode arg) {
-    boolean result = unifyFS1(arg);
+    boolean result = unifyFS1(arg, paths);
     invalidate();
     return result;
   }
@@ -1328,7 +1483,7 @@ public class DagNode {
   // Begin Restrictor and Error Case Reduction
   // *************************************************************************
 
-  private RESTRICT getRestrictorType() {
+  RESTRICT getRestrictorType() {
     return RESTRICT.values()[getType()];
   }
 
@@ -1342,6 +1497,10 @@ public class DagNode {
       // could also be a string constant
       if (valString.startsWith("\""))
         valString = valString.substring(1, valString.length() - 1);
+      int commaPos = 0;
+      // ignore type generalizations of new version restrictors
+      if ((commaPos = valString.indexOf(',')) > 0)
+        valString = valString.substring(0, commaPos);
       value = RESTRICT.valueOf(valString.toUpperCase()).ordinal();
     }
     here.setType(value);
@@ -1420,6 +1579,7 @@ public class DagNode {
     if (this.getCopy() == restrictor) return;
     this.setCopy(restrictor);
 
+    /**/
     // first check if this is an empty DLIST that should be massaged
     if (fsgrammar.subsumesType(fsgrammar.dListTypeId, getType())) {
       DagNode list = getValue(fsgrammar.listFeatureId);
@@ -1429,10 +1589,13 @@ public class DagNode {
           ++emptiedDlists;
           list._edges = null;
           list._compArcs = null;
+          last._edges = null;
+          last._compArcs = null;
           // list._typeCode = fsgrammar.nullTypeId; // this is illegal!
         }
       }
     }
+    /**/
 
     RESTRICT restrictType = restrictor.getRestrictorType();
 
@@ -1454,7 +1617,7 @@ public class DagNode {
           arc1It.remove(); // delete the not mentioned feature
         } else {
           DagNode dag = arc1.getValue();
-          dag.unfillRec(sloppy);
+          //dag.unfillRec(sloppy);
           if ((dag._edges == null || dag._edges.isEmpty())
               && (sloppy || getType() == fsgrammar.getAppropriateType(arc1.getFeature()))
               && dag.getType() == fsgrammar.getMaxAppropriateType(arc1.getFeature())) {
