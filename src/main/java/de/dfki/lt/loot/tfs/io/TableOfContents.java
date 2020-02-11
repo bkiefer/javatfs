@@ -3,13 +3,14 @@ package de.dfki.lt.loot.tfs.io;
 import java.io.IOException;
 import java.util.Arrays;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class TableOfContents {
 
   private static final Logger LOGGER =
-    Logger.getLogger(TableOfContents.class);
+    LoggerFactory.getLogger(TableOfContents.class);
 
   /** Sections in the binary dump files for different types of information:
    *  - symbol table

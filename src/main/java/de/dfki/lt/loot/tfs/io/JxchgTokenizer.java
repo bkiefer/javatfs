@@ -14,7 +14,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
 
 import de.dfki.lt.loot.tfs.TFS;
 
@@ -106,7 +106,7 @@ public class JxchgTokenizer {
     _current = _lastread = 0;
     */
   }
-  
+
   public static Reader getReader(File file)
       throws FileNotFoundException, IOException {
     return new InputStreamReader(
@@ -114,8 +114,8 @@ public class JxchgTokenizer {
         ? new GZIPInputStream(new FileInputStream(file))
         : new FileInputStream(file));
   }
-  
-  
+
+
   /** Return a new tokenizer that is fed from a (probably gzip compressed)
    *  file. The method automatically selects the correct input stream.
    * @throws IOException
@@ -372,7 +372,7 @@ public class JxchgTokenizer {
           "Unknown consumer for readEdges: " + consumer);
     }
   }
-  
+
   public boolean atEOF() throws IOException {
     nextToken();
     if (ttype == StreamTokenizer.TT_EOF)
@@ -408,11 +408,11 @@ public class JxchgTokenizer {
   public int lineno() {
     return _startPos.line;
   }
-  
+
   public int column() {
     return _startPos.column;
   }
-  
+
   public void close() throws IOException {
     _in.close();
   }
