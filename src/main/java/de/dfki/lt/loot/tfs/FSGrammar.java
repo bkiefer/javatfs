@@ -22,7 +22,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import de.dfki.lt.loot.tfs.io.Consumer;
 import de.dfki.lt.loot.tfs.io.EdgeConsumer;
@@ -41,9 +42,9 @@ import de.dfki.lt.loot.tfs.util.ShortIDMap;
  */
 public class FSGrammar {
 
-  private static final Logger LOGGER = Logger.getLogger(FSGrammar.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FSGrammar.class);
 
-  private static final Logger infoLogger = Logger.getLogger("Info");
+  private static final Logger infoLogger = LoggerFactory.getLogger("Info");
 
   /** This map maps from strings to (int) type ids and back */
   protected IntIDMap<String> _typeIdMap;
@@ -497,7 +498,11 @@ public class FSGrammar {
 
   boolean[] lockSubs = { false };
 
-  /** Fully thread safe by synchronizing the glb cache with an efficient lock */
+  /** Fully thread safe by synchronizing the glb cache with an efficient lock
+   *
+   *  This function is a duplicate of unifyTypes to keep the effect of
+   *  type unifications separate from those of subsumption operations
+   */
   public int unifyTypesSubs(int t1, int t2) {
     // swap the parameter value in order to guarantee that
     // typeIdent1 <= typeIdent2 is ALWAYS the case;
@@ -1130,7 +1135,7 @@ public class FSGrammar {
      JxchgTokenizer tok = new JxchgTokenizer(in);
      tok.readEdges(consumer);
    } catch (IOException ioex) {
-     LOGGER.warn(ioex);
+     LOGGER.warn("{}", ioex);
    }
  }
 
@@ -1151,9 +1156,9 @@ public class FSGrammar {
     try {
       readTFSReader(JxchgTokenizer.getReader(file), consumer);
     } catch (FileNotFoundException fnfex) {
-      LOGGER.warn(fnfex);
+      LOGGER.warn("{}", fnfex);
     } catch (IOException ioex) {
-      LOGGER.warn(ioex);
+      LOGGER.warn("{}", ioex);
     } catch (InvalidSyntaxException isex) {
       File moveTo =
         new File(file.getParent() + File.separator + "bad" + File.separator

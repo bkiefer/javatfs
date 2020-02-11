@@ -7,7 +7,8 @@ import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import de.dfki.lt.loot.tfs.io.InvalidSyntaxException;
 import de.dfki.lt.loot.tfs.io.JxchgTokenizer;
@@ -21,7 +22,7 @@ import de.dfki.lt.loot.tfs.io.PetUndumper;
  */
 public class TFS {
 
-  private static Logger logger = Logger.getLogger(TFS.class);
+  private static Logger logger = LoggerFactory.getLogger(TFS.class);
 
   private static DagNode qcSet;
   private static int qcLen;
@@ -232,7 +233,7 @@ public class TFS {
       result.setVal(DagNode.buildFS(in, result));
     } catch (IOException ioex) {
       result = null;
-      logger.warn(ioex.getMessage());
+      logger.warn("{}", ioex.getMessage());
     }
     return result;
   }
